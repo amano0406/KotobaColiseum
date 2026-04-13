@@ -2,6 +2,9 @@ const state = {
   settings: { hasOpenAiKey: false, battleGenerationMode: "dynamic" },
   runtime: { allowMockWithoutKey: true, forceMockMode: false, displayName: "ことばコロシアム" },
   battle: null,
+  story: null,
+  overlay: "title",
+  encounterCount: 0,
   listening: false,
   recognition: null,
   generationProgressTimer: null,
@@ -21,8 +24,9 @@ async function initialize() {
   await Promise.all([loadSettings(), loadRuntime()]);
   setupSpeech();
   renderSettingsStatus();
-  renderHomeStatus();
-  renderBattleModePreview();
+  renderTitleScreen();
+  renderBattleFrame();
+  setOverlay("title");
 }
 
 function captureElements() {
@@ -30,6 +34,7 @@ function captureElements() {
     "settings-status-badge",
     "settings-panel-badge",
     "runtime-mode-badge",
+    "run-counter",
     "home-status",
     "settings-result",
     "openai-key-input",
@@ -41,13 +46,16 @@ function captureElements() {
     "delete-key-button",
     "start-battle-button",
     "jump-settings-button",
+    "open-settings-hero-button",
+    "story-settings-button",
+    "settings-close-button",
+    "settings-backdrop",
     "battle-panel",
     "battle-bg-image",
     "enemy-name",
     "hp-text",
     "hp-fill",
     "enemy-line",
-    "world-intro",
     "battle-stage",
     "enemy-portrait",
     "enemy-portrait-shell",
@@ -59,13 +67,20 @@ function captureElements() {
     "battle-mode-description",
     "attack-input",
     "attack-button",
-    "battle-log",
+    "input-dock",
     "speech-button",
     "speech-status",
     "generation-progress",
     "generation-progress-label",
     "generation-progress-value",
     "generation-progress-fill",
+    "title-screen",
+    "loading-screen",
+    "story-screen",
+    "story-phase-label",
+    "story-title",
+    "story-text",
+    "story-continue-button",
   ];
 
   for (const id of ids) {
@@ -74,8 +89,15 @@ function captureElements() {
 }
 
 function bindEvents() {
-  elements["jump-settings-button"].addEventListener("click", () => {
-    document.getElementById("settings-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  for (const id of ["jump-settings-button", "open-settings-hero-button", "story-settings-button"]) {
+    elements[id].addEventListener("click", openSettings);
+  }
+
+  elements["settings-close-button"].addEventListener("click", closeSettings);
+  elements["settings-backdrop"].addEventListener("click", (event) => {
+    if (event.target === elements["settings-backdrop"]) {
+      closeSettings();
+    }
   });
 
   elements["toggle-key-visibility-button"].addEventListener("click", () => {
@@ -88,7 +110,8 @@ function bindEvents() {
   elements["save-key-button"].addEventListener("click", saveKey);
   elements["test-key-button"].addEventListener("click", testKey);
   elements["delete-key-button"].addEventListener("click", deleteKey);
-  elements["start-battle-button"].addEventListener("click", startBattle);
+  elements["start-battle-button"].addEventListener("click", () => requestBattleStart(elements["start-battle-button"]));
+  elements["story-continue-button"].addEventListener("click", handleStoryContinue);
   elements["attack-button"].addEventListener("click", attack);
   elements["speech-button"].addEventListener("click", toggleSpeech);
   elements["attack-input"].addEventListener("keydown", (event) => {
@@ -138,44 +161,109 @@ function renderSettingsStatus() {
   elements["runtime-mode-badge"].className = `status-badge ${configured ? "success" : "neutral"}`;
 }
 
-function renderHomeStatus() {
+function renderTitleScreen() {
   const configured = state.settings.hasOpenAiKey;
   const mode = state.settings.battleGenerationMode || "dynamic";
 
+  elements["battle-mode-summary"].textContent = mode;
+
+  if (mode === "fixed") {
+    elements["battle-preview-title"].textContent = "固定敵チャレンジ";
+    elements["battle-preview-description"].textContent = "スクロールなしの単画面で、固定敵をテンポよく倒していくモードです。";
+    elements["battle-mode-description"].textContent = "固定敵で安定起動します。倒した後は次戦へすぐ進めます。";
+  } else {
+    elements["battle-preview-title"].textContent = "連戦コロシアム";
+    elements["battle-preview-description"].textContent = "毎戦ごとに敵、前後ストーリー、背景、立ち絵をその場生成します。";
+    elements["battle-mode-description"].textContent = "dynamic では敵が次々に現れ、失敗時だけ fixed へ自動フォールバックします。";
+  }
+
   if (state.runtime.forceMockMode) {
-    elements["home-status"].textContent = "現在は強制 mock mode です。配信前導線や E2E ではこのモードを使えます。";
+    elements["home-status"].textContent = "現在は強制 mock mode です。導線確認や E2E 用の安全レーンとして動作します。";
     elements["home-status"].className = "callout warning";
     return;
   }
 
   if (configured) {
     elements["home-status"].textContent = mode === "dynamic"
-      ? "OpenAI API key は保存済みです。敵キャラ、導入、画像プロンプトをその場生成できます。"
-      : "OpenAI API key は保存済みです。現在は fixed モードなので固定敵を安定起動します。";
+      ? "OpenAI API key は保存済みです。ゲーム開始で物語が流れ、敵が現れ、倒すと次の敵へ進めます。"
+      : "OpenAI API key は保存済みです。現在は fixed モードなので、固定敵で安定して連戦できます。";
     elements["home-status"].className = "callout success";
     return;
   }
 
   elements["home-status"].textContent = mode === "dynamic"
-    ? "OpenAI API key は未設定です。dynamic は fixed に自動フォールバックします。先に設定すると動的生成を使えます。"
-    : "OpenAI API key は未設定ですが、fixed モードなので固定敵でそのまま遊べます。";
+    ? "OpenAI API key は未設定です。dynamic は fixed に自動フォールバックします。設定を入れると毎戦ごとの動的生成を使えます。"
+    : "OpenAI API key は未設定ですが、fixed モードなのでそのまま遊べます。";
   elements["home-status"].className = "callout warning";
 }
 
-function renderBattleModePreview() {
-  const mode = state.settings.battleGenerationMode || "dynamic";
-  elements["battle-mode-summary"].textContent = mode;
-
-  if (mode === "fixed") {
-    elements["battle-preview-title"].textContent = "固定敵バトル";
-    elements["battle-preview-description"].textContent = "焼きそば食べたいマン戦を安定起動します。";
-    elements["battle-mode-description"].textContent = "既存の固定敵・固定導入で戦います。OpenAI 失敗時の安全レーンでもあります。";
+function renderBattleFrame(options = {}) {
+  const battle = state.battle;
+  if (!battle) {
+    setImmediateText(elements["enemy-name"], "敵未出現");
+    setImmediateText(elements["enemy-persona-summary"], "ゲーム開始で敵が現れます。");
+    setImmediateText(elements["enemy-line"], "敵が姿を見せるまで、舞台は静かだ。");
+    elements["hp-text"].textContent = "-- / --";
+    elements["hp-fill"].style.width = "0%";
+    elements["provider-badge"].textContent = "standby";
+    elements["provider-badge"].className = "status-badge neutral";
+    elements["enemy-portrait"].removeAttribute("src");
+    elements["battle-bg-image"].removeAttribute("src");
+    elements["run-counter"].textContent = "開幕前";
+    updateActionControls();
     return;
   }
 
-  elements["battle-preview-title"].textContent = "動的生成バトル";
-  elements["battle-preview-description"].textContent = "OpenAI がその場で敵キャラと導入を生成します。失敗時は固定敵モードへ自動フォールバックします。";
-  elements["battle-mode-description"].textContent = "毎回その場でキャラクター、導入、画像プロンプトを生成します。";
+  const { enemy } = battle;
+  const latestEnemyLine = battle.history.filter((item) => item.speaker === "enemy").at(-1)?.text || battle.openingLine;
+  elements["run-counter"].textContent = `第 ${battle.encounterNumber} 戦`;
+  elements["enemy-name"].textContent = enemy.name;
+  elements["enemy-persona-summary"].textContent = `${enemy.species} / ${enemy.archetype} / ${enemy.personaSummary} / 弱点: ${enemy.weakPoints.join("、")}`;
+
+  if (options.animateEnemy) {
+    typeText(elements["enemy-line"], latestEnemyLine, 22);
+  } else {
+    setImmediateText(elements["enemy-line"], latestEnemyLine);
+  }
+
+  elements["provider-badge"].textContent = battle.provider === "openai"
+    ? "dynamic / openai"
+    : battle.fellBackToFixed
+      ? "dynamic -> fixed"
+      : "fixed";
+  elements["provider-badge"].className = `status-badge ${battle.provider === "openai" ? "success" : "neutral"}`;
+  elements["enemy-portrait"].src = battle.enemyImage;
+  elements["enemy-portrait"].alt = `${enemy.name} の画像`;
+  elements["battle-bg-image"].src = battle.bgImage;
+  elements["battle-bg-image"].alt = "戦闘背景";
+
+  const hpRatio = Math.max(0, Math.min(1, enemy.currentHp / enemy.maxHp));
+  elements["hp-text"].textContent = `${enemy.currentHp} / ${enemy.maxHp}`;
+  elements["hp-fill"].style.width = `${hpRatio * 100}%`;
+  updateActionControls();
+}
+
+function updateActionControls() {
+  const canFight = state.overlay === "battle" && state.battle && !state.battle.victory;
+  elements["input-dock"].classList.toggle("hidden", !canFight);
+  elements["attack-input"].disabled = !canFight;
+  elements["attack-button"].disabled = !canFight;
+}
+
+function setOverlay(mode) {
+  state.overlay = mode;
+  elements["title-screen"].classList.toggle("hidden", mode !== "title");
+  elements["loading-screen"].classList.toggle("hidden", mode !== "loading");
+  elements["story-screen"].classList.toggle("hidden", mode !== "story");
+  updateActionControls();
+}
+
+function openSettings() {
+  elements["settings-backdrop"].classList.remove("hidden");
+}
+
+function closeSettings() {
+  elements["settings-backdrop"].classList.add("hidden");
 }
 
 async function saveKey() {
@@ -200,7 +288,7 @@ async function saveKey() {
     state.settings = payload;
     elements["openai-key-input"].value = "";
     renderSettingsStatus();
-    renderHomeStatus();
+    renderTitleScreen();
     renderSettingsResult("OpenAI API key をローカル保存しました。", "success");
   });
 }
@@ -222,8 +310,7 @@ async function saveBattleGenerationMode() {
 
     state.settings = payload;
     renderSettingsStatus();
-    renderHomeStatus();
-    renderBattleModePreview();
+    renderTitleScreen();
     renderSettingsResult(`バトル生成モードを ${mode} に保存しました。`, "success");
   });
 }
@@ -255,14 +342,16 @@ async function deleteKey() {
 
     state.settings.hasOpenAiKey = false;
     renderSettingsStatus();
-    renderHomeStatus();
+    renderTitleScreen();
     renderSettingsResult("保存済みの OpenAI API key を削除しました。", "success");
   });
 }
 
-async function startBattle() {
-  await runButtonAction(elements["start-battle-button"], async () => {
+async function requestBattleStart(button) {
+  await runButtonAction(button, async () => {
     beginGenerationProgress();
+    setOverlay("loading");
+
     try {
       const response = await fetch("/api/start-battle", { method: "POST" });
       const payload = await response.json().catch(() => ({}));
@@ -270,7 +359,9 @@ async function startBattle() {
         throw new Error(payload.error || "バトル開始に失敗しました。");
       }
 
+      state.encounterCount += 1;
       state.battle = {
+        encounterNumber: state.encounterCount,
         encounter: payload.encounter,
         enemy: payload.enemy || payload.encounter?.enemies?.[0],
         provider: payload.provider,
@@ -282,30 +373,99 @@ async function startBattle() {
         bgImagePrompt: payload.bgImagePrompt,
         bgImage: payload.bgImage,
         enemyImage: payload.enemyImage,
-        log: [
-          createLogEntry("world", payload.worldIntro),
-          createLogEntry("enemy", payload.openingLine),
+        history: [
+          createHistoryEntry("world", payload.worldIntro),
+          createHistoryEntry("enemy", payload.openingLine),
         ],
         victory: false,
+        lastAttackReason: null,
       };
 
+      renderBattleFrame();
       completeGenerationProgress(true);
-      renderBattleState({ animateIntro: true, animateEnemy: true });
-      elements["battle-panel"].classList.remove("hidden");
-      elements["battle-panel"].scrollIntoView({ behavior: "smooth", block: "start" });
+      presentPrologueStory();
 
       if (payload.fellBackToFixed) {
         renderSettingsResult("dynamic 生成に失敗したため fixed モードへ自動フォールバックしました。", "warning");
       }
     } catch (error) {
       completeGenerationProgress(false);
+      setOverlay(state.battle ? "battle" : "title");
       throw error;
     }
   });
 }
 
+function presentPrologueStory() {
+  const { enemy, worldIntro } = state.battle;
+  state.story = {
+    phaseLabel: `第 ${state.battle.encounterNumber} 戦`,
+    title: `${enemy.species}「${enemy.name}」が現れた`,
+    text: [
+      `ことばが刃になる舞台、第 ${state.battle.encounterNumber} 戦が始まる。`,
+      worldIntro,
+      `${enemy.species}「${enemy.name}」が前へ出た。${enemy.personaSummary}`,
+    ].join("\n\n"),
+    buttonText: "バトル開始",
+    action: "enter-battle",
+  };
+
+  renderStoryScreen();
+  setOverlay("story");
+}
+
+function presentVictoryStory() {
+  const { enemy, encounterNumber, lastAttackReason } = state.battle;
+  state.story = {
+    phaseLabel: `Victory ${encounterNumber}`,
+    title: `${enemy.name} を打ち崩した`,
+    text: [
+      `${enemy.species}「${enemy.name}」はついに言葉を失い、舞台の熱が少し静まった。`,
+      lastAttackReason || "見栄が砕け、戦場には勝利の余韻だけが残っている。",
+      "次の敵の気配が近づいている。続けて進める。",
+    ].join("\n\n"),
+    buttonText: "次の敵へ",
+    action: "next-battle",
+  };
+
+  renderStoryScreen();
+  setOverlay("story");
+}
+
+function renderStoryScreen() {
+  if (!state.story) {
+    return;
+  }
+
+  elements["story-phase-label"].textContent = state.story.phaseLabel;
+  elements["story-title"].textContent = state.story.title;
+  elements["story-continue-button"].textContent = state.story.buttonText;
+  typeText(elements["story-text"], state.story.text, 15);
+}
+
+async function handleStoryContinue() {
+  if (!state.story) {
+    return;
+  }
+
+  await runButtonAction(elements["story-continue-button"], async () => {
+    if (state.story.action === "enter-battle") {
+      state.story = null;
+      setOverlay("battle");
+      renderBattleFrame({ animateEnemy: true });
+      elements["attack-input"].focus();
+      return;
+    }
+
+    if (state.story.action === "next-battle") {
+      state.story = null;
+      await requestBattleStart(elements["story-continue-button"]);
+    }
+  });
+}
+
 async function attack() {
-  if (!state.battle || state.battle.victory) {
+  if (!state.battle || state.battle.victory || state.overlay !== "battle") {
     return;
   }
 
@@ -321,12 +481,7 @@ async function attack() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         enemy: state.battle.enemy,
-        battleHistory: state.battle.log.map((entry) => ({
-          speaker: entry.speaker,
-          text: entry.text,
-          damage: entry.damage,
-          reason: entry.reason,
-        })),
+        battleHistory: state.battle.history,
         playerText,
       }),
     });
@@ -337,98 +492,22 @@ async function attack() {
     }
 
     state.battle.provider = payload.provider || state.battle.provider;
-    state.battle.log.push(createLogEntry("player", playerText));
-    state.battle.log.push(createLogEntry("enemy", payload.enemyLine, payload.damage, payload.reason));
+    state.battle.history.push(createHistoryEntry("player", playerText));
+    state.battle.history.push(createHistoryEntry("enemy", payload.enemyLine, payload.damage, payload.reason));
     state.battle.enemy.currentHp = Math.max(0, state.battle.enemy.currentHp - payload.damage);
     state.battle.victory = state.battle.enemy.currentHp <= 0;
+    state.battle.lastAttackReason = payload.reason || null;
 
     elements["attack-input"].value = "";
     animateImpact(payload.animation);
-    renderBattleState({ animateEnemy: true });
+    renderBattleFrame({ animateEnemy: true });
 
     if (state.battle.victory) {
-      renderSettingsResult("勝利。もう一度遊ぶ場合は「ゲーム開始」を押してください。", "success");
+      window.setTimeout(() => {
+        presentVictoryStory();
+      }, 640);
     }
   });
-
-  if (state.battle?.victory) {
-    elements["attack-input"].disabled = true;
-    elements["attack-button"].disabled = true;
-  }
-}
-
-function renderBattleState(options = {}) {
-  if (!state.battle) {
-    return;
-  }
-
-  const { enemy } = state.battle;
-  elements["enemy-name"].textContent = enemy.name;
-  elements["enemy-persona-summary"].textContent = `${enemy.species} / ${enemy.archetype} / ${enemy.personaSummary} / 弱点: ${enemy.weakPoints.join("、")}`;
-  const latestEnemyLine = state.battle.log.filter((item) => item.speaker === "enemy").at(-1)?.text || state.battle.openingLine;
-  if (options.animateIntro) {
-    typeText(elements["world-intro"], state.battle.worldIntro, 16);
-  } else {
-    elements["world-intro"].textContent = state.battle.worldIntro;
-  }
-
-  if (options.animateEnemy) {
-    typeText(elements["enemy-line"], latestEnemyLine, 22);
-  } else {
-    elements["enemy-line"].textContent = latestEnemyLine;
-  }
-
-  elements["provider-badge"].textContent = state.battle.provider === "openai"
-    ? "dynamic / openai"
-    : state.battle.fellBackToFixed
-      ? "dynamic -> fixed"
-      : "fixed";
-  elements["provider-badge"].className = `status-badge ${state.battle.provider === "openai" ? "success" : "neutral"}`;
-  elements["enemy-portrait"].src = state.battle.enemyImage;
-  elements["enemy-portrait"].alt = `${enemy.name} の画像`;
-  elements["battle-bg-image"].src = state.battle.bgImage;
-  elements["battle-bg-image"].alt = "戦闘背景";
-
-  const hpRatio = Math.max(0, Math.min(1, enemy.currentHp / enemy.maxHp));
-  elements["hp-text"].textContent = `${enemy.currentHp} / ${enemy.maxHp}`;
-  elements["hp-fill"].style.width = `${hpRatio * 100}%`;
-  elements["attack-input"].disabled = state.battle.victory;
-  elements["attack-button"].disabled = state.battle.victory;
-
-  renderBattleLog();
-}
-
-function renderBattleLog() {
-  elements["battle-log"].replaceChildren();
-  const template = document.getElementById("log-entry-template");
-
-  for (const entry of state.battle.log) {
-    const fragment = template.content.cloneNode(true);
-    fragment.querySelector(".log-speaker").textContent = speakerLabel(entry.speaker);
-    fragment.querySelector(".log-text").textContent = entry.text;
-
-    const meta = [];
-    if (typeof entry.damage === "number") {
-      meta.push(`damage ${entry.damage}`);
-    }
-    if (entry.reason) {
-      meta.push(entry.reason);
-    }
-    fragment.querySelector(".log-meta").textContent = meta.join(" / ");
-
-    elements["battle-log"].appendChild(fragment);
-  }
-
-  elements["battle-log"].scrollTop = elements["battle-log"].scrollHeight;
-}
-
-function animateImpact(animation) {
-  const shell = elements["enemy-portrait-shell"];
-  shell.classList.remove("hit", "critical", "defeat");
-  void shell.offsetWidth;
-  if (animation) {
-    shell.classList.add(animation);
-  }
 }
 
 function setupSpeech() {
@@ -495,7 +574,6 @@ function renderSettingsResult(message, tone) {
 function beginGenerationProgress() {
   clearGenerationProgressTimer();
   updateGenerationProgress(6);
-  elements["generation-progress"].classList.remove("hidden");
   elements["generation-progress-label"].textContent = "生成中...";
   state.generationProgressTimer = window.setInterval(() => {
     const current = parseInt(elements["generation-progress-value"].textContent, 10) || 0;
@@ -514,11 +592,6 @@ function completeGenerationProgress(success) {
   clearGenerationProgressTimer();
   updateGenerationProgress(100);
   elements["generation-progress-label"].textContent = success ? "生成完了" : "生成失敗";
-  window.setTimeout(() => {
-    elements["generation-progress"].classList.add("hidden");
-    updateGenerationProgress(0);
-    elements["generation-progress-label"].textContent = "生成中...";
-  }, success ? 520 : 900);
 }
 
 function clearGenerationProgressTimer() {
@@ -550,33 +623,31 @@ function typeText(element, text, delayMs) {
   });
 }
 
+function setImmediateText(element, text) {
+  element.dataset.typingToken = `instant-${Date.now()}`;
+  element.textContent = text || "";
+}
+
+function animateImpact(animation) {
+  const shell = elements["enemy-portrait-shell"];
+  shell.classList.remove("hit", "critical", "defeat");
+  void shell.offsetWidth;
+  if (animation) {
+    shell.classList.add(animation);
+  }
+}
+
 async function runButtonAction(button, action) {
-  const buttons = [button];
   button.disabled = true;
   try {
     await action();
   } catch (error) {
     renderSettingsResult(error.message || "処理に失敗しました。", "error");
   } finally {
-    for (const item of buttons) {
-      item.disabled = false;
-    }
+    button.disabled = false;
   }
 }
 
-function createLogEntry(speaker, text, damage = null, reason = null) {
+function createHistoryEntry(speaker, text, damage = null, reason = null) {
   return { speaker, text, damage, reason };
-}
-
-function speakerLabel(speaker) {
-  switch (speaker) {
-    case "world":
-      return "導入";
-    case "enemy":
-      return "敵";
-    case "player":
-      return "あなた";
-    default:
-      return speaker;
-  }
 }

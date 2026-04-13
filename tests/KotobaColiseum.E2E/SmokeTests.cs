@@ -12,6 +12,7 @@ public sealed class SmokeTests
         var page = session.Page;
 
         (await page.TitleAsync()).Should().Contain("ことばコロシアム");
+        await page.ClickAsync("#jump-settings-button");
         await page.SelectOptionAsync("#battle-generation-mode", "dynamic");
         await page.ClickAsync("#save-mode-button");
         await ExpectTextAsync(page, "#battle-mode-summary", "dynamic");
@@ -19,9 +20,11 @@ public sealed class SmokeTests
         await page.FillAsync("#openai-key-input", "sk-local-test-1234567890abcdef");
         await page.ClickAsync("#save-key-button");
         await ExpectTextAsync(page, "#settings-panel-badge", "設定済み");
+        await page.ClickAsync("#settings-close-button");
 
         await page.ClickAsync("#start-battle-button");
-        await page.WaitForSelectorAsync("#battle-panel:not(.hidden)");
+        await page.WaitForSelectorAsync("#story-screen:not(.hidden)");
+        await page.ClickAsync("#story-continue-button");
         await ExpectTextAsync(page, "#provider-badge", "dynamic -> fixed");
         await ExpectTextAsync(page, "#enemy-name", "焼きそば食べたいマン");
     }
@@ -32,12 +35,15 @@ public sealed class SmokeTests
         await using var session = await OpenPageAsync();
         var page = session.Page;
 
+        await page.ClickAsync("#jump-settings-button");
         await page.SelectOptionAsync("#battle-generation-mode", "fixed");
         await page.ClickAsync("#save-mode-button");
         await ExpectTextAsync(page, "#battle-mode-summary", "fixed");
+        await page.ClickAsync("#settings-close-button");
 
         await page.ClickAsync("#start-battle-button");
-        await page.WaitForSelectorAsync("#battle-panel:not(.hidden)");
+        await page.WaitForSelectorAsync("#story-screen:not(.hidden)");
+        await page.ClickAsync("#story-continue-button");
         await ExpectTextAsync(page, "#provider-badge", "fixed");
         await ExpectTextAsync(page, "#enemy-persona-summary", "屋台妖人");
 
@@ -67,11 +73,8 @@ public sealed class SmokeTests
 
         var currentHp = int.Parse(hpText!.Split('/')[0].Trim());
         currentHp.Should().Be(0);
-
-        var logText = await page.Locator("#battle-log").InnerTextAsync();
-        logText.Should().Contain("あなた");
-        logText.Should().Contain("敵");
-        logText.Should().Contain("damage");
+        await page.WaitForSelectorAsync("#story-screen:not(.hidden)");
+        await ExpectTextAsync(page, "#story-title", "焼きそば食べたいマン");
     }
 
     private static async Task<BrowserSession> OpenPageAsync()
