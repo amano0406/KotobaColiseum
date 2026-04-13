@@ -216,6 +216,8 @@ button:disabled {
   background: transparent;
   border: none;
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+  transform-origin: center bottom;
+  animation: idleFloat 4.6s ease-in-out infinite;
 }
 
 .enemy-portrait-shell.hit {
@@ -496,6 +498,29 @@ button:disabled {
   25% { transform: translateX(-14px); }
   50% { transform: translateX(14px); }
   75% { transform: translateX(-10px); }
+}
+
+@keyframes idleFloat {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: brightness(1);
+  }
+  25% {
+    transform: translate3d(-6px, -4px, 0) scale(1.015);
+    filter: brightness(1.02);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.03);
+    filter: brightness(1.05);
+  }
+  75% {
+    transform: translate3d(6px, -3px, 0) scale(1.015);
+    filter: brightness(1.02);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: brightness(1);
+  }
 }
 
 @keyframes criticalPulse {
