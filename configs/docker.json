@@ -1,0 +1,10 @@
+{
+  "project_name": "KotobaColiseum",
+  "display_name": "ことばコロシアム",
+  "app_data_root": "/shared/app-data",
+  "settings_file": "/shared/app-data/settings.json",
+  "secret_file": "/shared/app-data/secrets/openai.key",
+  "battle_generation_mode": "dynamic",
+  "runtime_defaults": "/app/config/runtime.defaults.json",
+  "web_url": "http://localhost:19120"
+}

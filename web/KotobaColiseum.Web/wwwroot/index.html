@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ことばコロシアム</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Local-first verbal battle game</p>
+        <h1>ことばコロシアム</h1>
+        <p class="subtitle">言葉で敵の見栄を砕く、配信向けワンバトル RPG。</p>
+      </div>
+      <div class="topbar-actions">
+        <span id="settings-status-badge" class="status-badge">設定確認中</span>
+        <button id="jump-settings-button" class="ghost-button" type="button">設定へ</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="main-column">
+        <section class="panel intro-panel" id="home-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Battle Setup</p>
+              <h2 id="battle-preview-title">動的生成バトル</h2>
+            </div>
+            <span id="runtime-mode-badge" class="status-badge neutral">local</span>
+          </div>
+          <p id="battle-preview-description" class="lead">OpenAI がその場で敵キャラと導入を生成します。失敗時は固定敵モードへ自動フォールバックします。</p>
+          <div id="home-status" class="callout warning">
+            API key の状態を確認しています。
+          </div>
+          <div class="hero-card">
+            <div>
+              <p class="hero-label">現在の生成モード</p>
+              <h3 id="battle-mode-summary">dynamic</h3>
+              <p id="battle-mode-description">毎回その場でキャラクター、導入、画像プロンプトを生成します。</p>
+            </div>
+            <button id="start-battle-button" class="primary-button" type="button">ゲーム開始</button>
+          </div>
+          <div id="generation-progress" class="generation-progress hidden" aria-live="polite">
+            <div class="generation-progress-meta">
+              <span id="generation-progress-label">生成中...</span>
+              <strong id="generation-progress-value">0%</strong>
+            </div>
+            <div class="generation-progress-bar">
+              <div id="generation-progress-fill" class="generation-progress-fill"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel battle-panel hidden" id="battle-panel">
+          <div class="battle-header">
+            <div>
+              <p class="eyebrow">Battlefield</p>
+              <h2 id="enemy-name">敵名</h2>
+              <p id="enemy-persona-summary" class="minor-note">敵の説明がここに表示されます。</p>
+            </div>
+            <span id="provider-badge" class="status-badge neutral">mock</span>
+          </div>
+
+          <div class="hp-box">
+            <div class="hp-meta">
+              <span>HP</span>
+              <strong id="hp-text">100 / 100</strong>
+            </div>
+            <div class="hp-bar">
+              <div id="hp-fill" class="hp-fill"></div>
+            </div>
+          </div>
+
+          <div id="battle-stage" class="battle-stage">
+            <img id="battle-bg-image" class="battle-bg-image" alt="">
+            <div class="battle-overlay"></div>
+            <div class="enemy-card">
+              <div id="enemy-portrait-shell" class="enemy-portrait-shell">
+                <img id="enemy-portrait" alt="敵画像">
+              </div>
+              <div class="speech-box">
+                <p class="speech-label">敵のセリフ</p>
+                <p id="enemy-line">ここに敵のセリフが表示されます。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="world-intro">
+            <p class="speech-label">導入</p>
+            <p id="world-intro">バトルを開始すると導入文が表示されます。</p>
+          </div>
+
+          <div class="input-box">
+            <label class="speech-label" for="attack-input">言葉で攻撃</label>
+            <textarea id="attack-input" rows="3" maxlength="200" placeholder="例: お前、本当は焼きそばの違いなんて分かってないだろ。"></textarea>
+            <div class="input-actions">
+              <button id="speech-button" class="ghost-button" type="button">音声入力</button>
+              <button id="attack-button" class="primary-button" type="button">送信</button>
+            </div>
+            <p id="speech-status" class="minor-note">音声入力は対応ブラウザでのみ有効です。</p>
+          </div>
+
+          <div class="log-box">
+            <div class="panel-heading compact">
+              <div>
+                <p class="eyebrow">Battle Log</p>
+                <h3>ログ</h3>
+              </div>
+            </div>
+            <div id="battle-log" class="battle-log"></div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="panel settings-panel" id="settings-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Settings</p>
+            <h2>OpenAI 設定</h2>
+          </div>
+          <span id="settings-panel-badge" class="status-badge">未確認</span>
+        </div>
+
+        <p class="minor-note">このキーはローカル環境の `app-data` に保存され、リポジトリには含めません。</p>
+
+        <label class="field-label" for="openai-key-input">OpenAI API key</label>
+        <div class="secret-row">
+          <input id="openai-key-input" type="password" autocomplete="off" placeholder="sk-..." />
+          <button id="toggle-key-visibility-button" class="ghost-button" type="button">表示</button>
+        </div>
+
+        <label class="field-label" for="battle-generation-mode">バトル生成モード</label>
+        <div class="mode-row">
+          <select id="battle-generation-mode">
+            <option value="dynamic">dynamic</option>
+            <option value="fixed">fixed</option>
+          </select>
+          <button id="save-mode-button" class="ghost-button" type="button">モード保存</button>
+        </div>
+        <p class="minor-note">初期値は dynamic です。dynamic が失敗した場合は fixed に自動フォールバックします。</p>
+
+        <div class="stack-buttons">
+          <button id="save-key-button" class="primary-button" type="button">保存</button>
+          <button id="test-key-button" class="ghost-button" type="button">疎通確認</button>
+          <button id="delete-key-button" class="danger-button" type="button">削除</button>
+        </div>
+
+        <div id="settings-result" class="callout neutral">
+          保存状態はここに表示されます。
+        </div>
+
+        <div class="settings-hints">
+          <p class="hint-title">使い方</p>
+          <ul>
+            <li>キー未設定でも画面は開きます。</li>
+            <li>dynamic は敵キャラ・導入・画像プロンプトをその場生成します。</li>
+            <li>fixed は既存の固定敵で安定起動するモードです。</li>
+            <li>保存後に「疎通確認」で OpenAI API と接続テストできます。</li>
+            <li>画像生成が失敗しても、ゲーム本体はプレースホルダーで続行します。</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <template id="log-entry-template">
+    <article class="log-entry">
+      <div class="log-entry-header">
+        <span class="log-speaker"></span>
+        <span class="log-meta"></span>
+      </div>
+      <p class="log-text"></p>
+    </article>
+  </template>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

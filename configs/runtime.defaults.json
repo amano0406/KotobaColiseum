@@ -1,0 +1,32 @@
+{
+  "KotobaColiseum": {
+    "DisplayName": "ことばコロシアム",
+    "OpenAi": {
+      "ApiBaseUrl": "https://api.openai.com/v1",
+      "TextModel": "gpt-4o-mini",
+      "ImageModel": "gpt-image-1-mini",
+      "ImageSize": "1024x1024",
+      "ImageQuality": "low",
+      "EnableImageGeneration": true,
+      "ForceMockMode": false
+    },
+    "Battle": {
+      "StartingHp": 100,
+      "MaxDamage": 40,
+      "AllowMockWithoutKey": true
+    },
+    "Enemy": {
+      "Id": "yakisoba-man",
+      "Name": "焼きそば食べたいマン",
+      "Species": "屋台妖人",
+      "Archetype": "屋台見栄っぱり",
+      "PersonaSummary": "見栄っ張りで、すぐムキになるが、芯は弱い。",
+      "SpeechStyle": "少し荒い口調。追い詰められると語尾が崩れる。",
+      "WeakPoints": [
+        "見栄",
+        "知ったかぶり",
+        "食の浅さ"
+      ]
+    }
+  }
+}

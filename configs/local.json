@@ -1,0 +1,10 @@
+{
+  "project_name": "KotobaColiseum",
+  "display_name": "ことばコロシアム",
+  "app_data_root": "C:\\Codex\\workspaces\\KotobaColiseum\\app-data",
+  "settings_file": "C:\\Codex\\workspaces\\KotobaColiseum\\app-data\\settings.json",
+  "secret_file": "C:\\Codex\\workspaces\\KotobaColiseum\\app-data\\secrets\\openai.key",
+  "battle_generation_mode": "dynamic",
+  "runtime_defaults": "C:\\CodexWorkspace\\KotobaColiseum\\configs\\runtime.defaults.json",
+  "web_url": "http://localhost:19120"
+}

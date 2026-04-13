@@ -1,0 +1,8 @@
+.git
+.gitignore
+.env
+app-data
+**/bin
+**/obj
+tests/KotobaColiseum.E2E/bin
+tests/KotobaColiseum.E2E/obj

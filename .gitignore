@@ -1,0 +1,7 @@
+.env
+app-data/
+TestResults/
+tests/.tmp/
+**/bin/
+**/obj/
+playwright-report/

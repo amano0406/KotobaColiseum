@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/KotobaColiseum.E2E/KotobaColiseum.E2E.csproj" />
+  </Folder>
+  <Folder Name="/web/">
+    <Project Path="web/KotobaColiseum.Web/KotobaColiseum.Web.csproj" />
+  </Folder>
+</Solution>
