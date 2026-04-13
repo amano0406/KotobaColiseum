@@ -75,3 +75,4 @@ The E2E flow uses mock mode so it can run without a real OpenAI API key.
 
 - `main` push and pull request: run `dotnet build` and `BattleServiceTests`
 - tag push like `v0.1.0`: build the release image, push it to `ghcr.io/amano0406/kotobacoliseum`, and create a GitHub Release automatically
+- the UI bundles `DotGothic16` as the Japanese retro game font

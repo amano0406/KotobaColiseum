@@ -119,6 +119,7 @@ KotobaColiseum/
 - OpenAI の本文生成は JSON schema を使った構造化出力を優先しています
 - dynamic モードでは敵キャラ生成自体も JSON schema で行います
 - 画像生成は OpenAI で行い、失敗したらプレースホルダーを返します
+- UI では日本語対応のドット風フォント `DotGothic16` を同梱して使っています
 - 将来の複数敵対応を見越して `encounter.enemies` を返しますが、今日は敵 1 体固定です
 
 ## GitHub CI / Release

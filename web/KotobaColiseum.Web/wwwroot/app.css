@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "DotGothic16";
+  src: url("/fonts/DotGothic16-Regular.ttf") format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
 :root {
   --bg: #120907;
   --panel: rgba(30, 13, 10, 0.86);
@@ -11,7 +19,7 @@
   --success: #8bd9a3;
   --warning: #ffd782;
   --shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
-  --pixel-font: "MS Gothic", "Cascadia Mono", "Courier New", monospace;
+  --pixel-font: "DotGothic16", "Yu Gothic UI", "Yu Gothic", "Meiryo", "MS Gothic", monospace;
 }
 
 * {
