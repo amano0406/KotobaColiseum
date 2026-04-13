@@ -178,8 +178,8 @@ public sealed class BattleService
     private StartBattleResponse BuildFixedBattleStart(bool fellBackToFixed)
     {
         var enemy = BuildFixedEnemyState(RollStartingHp());
-        var worldIntro = "夜の屋台通りでは、言葉の切れ味が強さになる。そこへ現れたのは、ソースの香りだけで通を気取る男『焼きそば食べたいマン』。見栄で膨らんだプライドを、ことばで削り落とせ。";
-        var openingLine = "へっ、焼きそばを語らせたら俺の右に出るやつはいねえ。お前、まさか中身で勝負する気じゃねえよな？";
+        var worldIntro = "夜の屋台通りでは、言葉の鋭さが強さになる。今夜の相手は、ソースの香りだけで通を名乗る『焼きそば食べたいマン』。薄い知識を自信で塗り固めたその顔を、ことばで崩せ。";
+        var openingLine = "焼きそばを語るなら、せめて俺くらいの顔で立て。……お前、まさか雰囲気だけで見抜けるつもりじゃねえだろうな。";
         const string enemyImagePrompt = "Pixel art JRPG enemy portrait of a boastful yakisoba-themed street yokai posing like a food champion, full body sprite, transparent background, bold silhouette, warm lantern lighting, expressive face, no readable text, no speech bubbles, no UI.";
         const string bgImagePrompt = "Pixel art JRPG battle background of a night street-stall alley, warm lanterns, tiled ground, food stalls and fantasy atmosphere, clean composition, no readable text, no typography, no speech bubbles, no UI.";
         return new StartBattleResponse(

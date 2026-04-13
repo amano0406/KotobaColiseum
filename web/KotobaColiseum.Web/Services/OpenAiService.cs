@@ -92,10 +92,12 @@ public sealed class OpenAiService
 
         ルール:
         - 軽いRPG風
-        - バカゲー寄りだが、ふざけすぎない
-        - 中学生でも分かるノリ
+        - 軽いユーモアは入れてよいが、幼すぎるギャグや一発ネタには寄せない
+        - 中学生が少し背伸びして面白がれる温度感
         - 日本語は読みやすさ優先。難しい漢字や珍しい漢字は避け、迷ったらひらがなかカタカナにする
         - 言葉で殴るゲームとして成立する
+        - 笑いの軸は「変な名前」よりも、見栄、虚勢、勘違い、プライドのズレから生む
+        - 敵は少しカッコつけているが、本音の弱さやコンプレックスが見える
         - 弱点は言葉で突きやすい短い日本語フレーズにする
         - 敵は 1 体だけ
         - worldIntro は 2〜4 文
@@ -117,7 +119,7 @@ public sealed class OpenAiService
             apiKey,
             "battle_start_payload",
             BattleStartSchema,
-            systemPrompt: "You generate one comedic but stable RPG encounter for a Japanese word-battle game and always obey the JSON schema.",
+            systemPrompt: "You generate one mildly comedic but dramatic RPG encounter for a Japanese word-battle game. Avoid childish slapstick, keep the tone sharp, and always obey the JSON schema.",
             userPrompt: prompt,
             maxOutputTokens: 700,
             maxAttempts: 3,
@@ -161,6 +163,7 @@ public sealed class OpenAiService
         - 4〜6 ターン程度で終わるくらいのテンポ
         - 日本語は読みやすさ優先。難しい漢字や珍しい漢字は避け、迷ったらひらがなかカタカナにする
         - enemyLine は敵本人のセリフとして自然な日本語
+        - enemyLine は子どもっぽくしすぎず、見栄、焦り、プライドの揺れが出るようにする
         - reason は 1 文で短く
         - HP が尽きそうなら animation は defeat
         """;
@@ -169,7 +172,7 @@ public sealed class OpenAiService
             apiKey,
             "attack_payload",
             AttackSchema,
-            systemPrompt: "You judge comedic RPG verbal attacks and always return compact Japanese JSON.",
+            systemPrompt: "You judge verbal attacks in a mildly comedic RPG scene and return compact Japanese JSON with sharp but not childish tone.",
             userPrompt: prompt,
             maxOutputTokens: 300,
             maxAttempts: 2,
